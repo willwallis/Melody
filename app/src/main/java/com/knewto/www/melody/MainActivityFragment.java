@@ -1,6 +1,7 @@
 package com.knewto.www.melody;
 
 import android.app.Activity;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.StrictMode;
@@ -8,11 +9,14 @@ import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -44,7 +48,7 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Create the Array Adapter for the list of artists
-        loadTestData();
+        ArtistList = new ArrayList<String>();
         ArtistAdapter = new ArrayAdapter<String> (
                 getActivity(),  // Context
                 R.layout.artist_list_item, // Name of item layout file
@@ -59,62 +63,38 @@ public class MainActivityFragment extends Fragment {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
-                // Run Spotify Query
-                // Connect to the Spotify API with the wrapper
-                SpotifyApi api = new SpotifyApi();
-                // Create a SpotifyService object that we can use to get desire data
-                SpotifyService spotify = api.getService();
-                // Add querymap with limit of 10 options returned
                 String artistName = ArtistAdapter.getItem(position);
-                Map<String, Object> options = new HashMap<>();
-                options.put("limit", 10);
-
-                // Spotify Call back
-                spotify.searchArtists(artistName, options, new Callback<ArtistsPager>() {
-                    @Override
-                    public void success(ArtistsPager artistsPager, Response response) {
-                        // Display toast of Spotify result if list item is selected
-                        Context context = getActivity(); // the current context
-                        int duration = Toast.LENGTH_SHORT; // how long the toast should display
-                        String toastText = ""; //what the toast should display
-                        int count = 1;
-                        for(Artist artist : artistsPager.artists.items){
-                            toastText = toastText + count + ": " + artist.name + "\n";
-                            count++;
-                        }
-                        Toast toast = Toast.makeText(context, toastText, duration);  // create the toast
-                        toast.show(); // display the toast
-                    }
-
-                    @Override
-                    public void failure(RetrofitError error) {
-                        Log.d("Artist search failure", error.toString());
-                    }
-                });
+                artistSpotify(artistName);
             }
         });
 
         return fragmentView;
     }
 
+    public void artistSpotify(String artistName) {
+        // Run Spotify Query
+        // Connect to the Spotify API with the wrapper
+        SpotifyApi api = new SpotifyApi();
+        // Create a SpotifyService object that we can use to get desire data
+        SpotifyService spotify = api.getService();
+        // Add querymap with limit of 10 options returned
+        Map<String, Object> options = new HashMap<>();
+        options.put("limit", 10);
 
+        // Spotify Call back
+        spotify.searchArtists(artistName, options, new Callback<ArtistsPager>() {
+            @Override
+            public void success(ArtistsPager artistsPager, Response response) {
+                ArtistAdapter.clear();
+                for(Artist artist : artistsPager.artists.items){
+                    ArtistAdapter.add(artist.name);
+                }
+            }
 
-    /**
-     *  Method to load test data to test the list view before connecting to Spotify.
-     */
-    public void loadTestData() {
-        ArtistList = new ArrayList<String>();
-        ArtistList.add("Kanye");
-        ArtistList.add("Beyonce");
-        ArtistList.add("Ciara");
-        ArtistList.add("Eminem");
-        ArtistList.add("Jay-Z");
-        ArtistList.add("The Killers");
-        ArtistList.add("U2");
-        ArtistList.add("Coldplay");
-        ArtistList.add("Will Smith");
-        ArtistList.add("Bassnecter");
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d("Artist search failure", error.toString());
+            }
+        });
     }
-
 }
