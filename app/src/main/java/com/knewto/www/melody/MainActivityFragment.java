@@ -17,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -40,38 +41,77 @@ public class MainActivityFragment extends Fragment {
 
     public MainActivityFragment() {
     }
-
-    ArrayAdapter<String> ArtistAdapter;  // Adapter for artist list view
-    ArrayList<String> ArtistList; // Array to contains the lists of artist
+    // Declare arraylist to contain Artist profiles and adapter to bind with list view
+    ArrayList<ArtistProfile> arrayOfArtists;
+    ArtistsAdapter artistsAdapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Create the Array Adapter for the list of artists
-        ArtistList = new ArrayList<String>();
-        ArtistAdapter = new ArrayAdapter<String> (
-                getActivity(),  // Context
-                R.layout.artist_list_item, // Name of item layout file
-                R.id.item_artist_name, // ID of the text view to populate
-                ArtistList //Artist Data
-        ) ;
+        // Create list of artists
+        arrayOfArtists = new ArrayList<ArtistProfile>();
+        // Add temporary entry
+        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "Gone");
+        arrayOfArtists.add(tempProfile);
+        // Create Adapter
+        artistsAdapter = new ArtistsAdapter(getActivity(), arrayOfArtists);
+
+        // Inflate fragment in bind List Adapter
         View fragmentView = inflater.inflate(R.layout.fragment_main, container, false);
             ListView listview = (ListView) fragmentView.findViewById(R.id.artist_list);
-            listview.setAdapter(ArtistAdapter);
+            listview.setAdapter(artistsAdapter);
 
         // Responds to click on list item
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String artistName = ArtistAdapter.getItem(position);
-                artistSpotify(artistName);
+                String artistName = artistsAdapter.getItem(position).name;
+                artistSearch(artistName);
             }
         });
 
         return fragmentView;
     }
 
-    public void artistSpotify(String artistName) {
+    /**
+     *  Class defining model for Artist Profile to show in search results
+     */
+    public class ArtistProfile {
+        public String name;
+        public String image;
+
+        public ArtistProfile(String name, String image) {
+            this.name = name;
+            this.image = image;
+        }
+    }
+
+    /**
+     * ArrayAdapter to contain Artist Profiles returned from search
+     */
+    public class ArtistsAdapter extends ArrayAdapter<ArtistProfile> {
+        public ArtistsAdapter(Context context, ArrayList<ArtistProfile> artistProfile) {
+            super(context, 0, artistProfile);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            // Get the data item for this position
+            ArtistProfile artistProfile = getItem(position);
+            // Check if an existing view is being reused, otherwise inflate the view
+            if (convertView == null) {
+                convertView = LayoutInflater.from(getContext()).inflate(R.layout.artist_list_item, parent, false);
+            }
+            // Lookup view for data population
+            TextView artistName = (TextView) convertView.findViewById(R.id.item_artist_name);
+            // Populate the data into the template view using the data object
+            artistName.setText(artistProfile.name);
+            // Return the completed view to render on screen
+            return convertView;
+        }
+    }
+
+    public void artistSearch(String artistName) {
         // Run Spotify Query
         // Connect to the Spotify API with the wrapper
         SpotifyApi api = new SpotifyApi();
@@ -85,10 +125,11 @@ public class MainActivityFragment extends Fragment {
         spotify.searchArtists(artistName, options, new Callback<ArtistsPager>() {
             @Override
             public void success(ArtistsPager artistsPager, Response response) {
-                ArtistAdapter.clear();
+                arrayOfArtists.clear();
                 for(Artist artist : artistsPager.artists.items){
-                    ArtistAdapter.add(artist.name);
+                    arrayOfArtists.add(new ArtistProfile(artist.name, "TEMP"));
                 }
+                artistsAdapter.notifyDataSetChanged();
             }
 
             @Override

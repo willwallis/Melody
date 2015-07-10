@@ -65,7 +65,7 @@ public class MainActivity extends ActionBarActivity {
 
     private void showResults(String query) {
         MainActivityFragment fragmentMain = (MainActivityFragment)getSupportFragmentManager().findFragmentById(R.id.fragment);
-        fragmentMain.artistSpotify(query);
+        fragmentMain.artistSearch(query);
     }
 
 }
