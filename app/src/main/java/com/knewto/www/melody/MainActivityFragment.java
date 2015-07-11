@@ -15,10 +15,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +54,7 @@ public class MainActivityFragment extends Fragment {
         // Create list of artists
         arrayOfArtists = new ArrayList<ArtistProfile>();
         // Add temporary entry
-        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "Gone");
+        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "DFSDFE");
         arrayOfArtists.add(tempProfile);
         // Create Adapter
         artistsAdapter = new ArtistsAdapter(getActivity(), arrayOfArtists);
@@ -79,10 +82,12 @@ public class MainActivityFragment extends Fragment {
     public class ArtistProfile {
         public String name;
         public String image;
+        public String id;
 
-        public ArtistProfile(String name, String image) {
+        public ArtistProfile(String name, String image, String id) {
             this.name = name;
             this.image = image;
+            this.id = id;
         }
     }
 
@@ -106,6 +111,13 @@ public class MainActivityFragment extends Fragment {
             TextView artistName = (TextView) convertView.findViewById(R.id.item_artist_name);
             // Populate the data into the template view using the data object
             artistName.setText(artistProfile.name);
+
+            // Load image with Picasso
+            ImageView artistImage = (ImageView) convertView.findViewById(R.id.item_artist_pic);
+
+            Picasso.with(getContext())
+                    .load(artistProfile.image)
+                    .into(artistImage);
             // Return the completed view to render on screen
             return convertView;
         }
@@ -127,7 +139,7 @@ public class MainActivityFragment extends Fragment {
             public void success(ArtistsPager artistsPager, Response response) {
                 arrayOfArtists.clear();
                 for(Artist artist : artistsPager.artists.items){
-                    arrayOfArtists.add(new ArtistProfile(artist.name, "TEMP"));
+                    arrayOfArtists.add(new ArtistProfile(artist.name, pickArtistImage(artist, 200), artist.id));
                 }
                 artistsAdapter.notifyDataSetChanged();
             }
@@ -137,5 +149,22 @@ public class MainActivityFragment extends Fragment {
                 Log.d("Artist search failure", error.toString());
             }
         });
+    }
+
+    public String pickArtistImage(Artist artist, int size){
+        String imageURL;
+        if (artist.images.size() == 0){
+            imageURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
+        }
+        else {
+            int imageDiff = Math.abs(artist.images.get(0).width - 200);
+            imageURL = artist.images.get(0).url;
+            for ( int i = 1 ; i < artist.images.size() ; i++){
+                if(Math.abs(artist.images.get(i).width - 200) < imageDiff){
+                    imageURL = artist.images.get(i).url;
+                }
+            }
+        }
+        return imageURL;
     }
 }
