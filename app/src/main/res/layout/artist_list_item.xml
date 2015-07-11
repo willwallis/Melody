@@ -15,9 +15,9 @@
         android:id="@+id/item_artist_name"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:gravity="center"
+        android:gravity="center_vertical"
         android:minHeight="?android:attr/listPreferredItemHeight"
-        android:text="Kanyeezy"/>
+        android:text="@string/blank_item" />
 
 
 </LinearLayout>

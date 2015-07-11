@@ -42,11 +42,12 @@ import retrofit.client.Response;
  */
 public class MainActivityFragment extends Fragment {
 
-    public MainActivityFragment() {
-    }
     // Declare arraylist to contain Artist profiles and adapter to bind with list view
     ArrayList<ArtistProfile> arrayOfArtists;
     ArtistsAdapter artistsAdapter;
+
+    public MainActivityFragment() {
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -54,7 +55,7 @@ public class MainActivityFragment extends Fragment {
         // Create list of artists
         arrayOfArtists = new ArrayList<ArtistProfile>();
         // Add temporary entry
-        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "DFSDFE");
+        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "6vWDO969PvNqNYHIOW5v0m");
         arrayOfArtists.add(tempProfile);
         // Create Adapter
         artistsAdapter = new ArtistsAdapter(getActivity(), arrayOfArtists);
@@ -68,8 +69,12 @@ public class MainActivityFragment extends Fragment {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String artistName = artistsAdapter.getItem(position).name;
-                artistSearch(artistName);
+                Intent detailIntent = new Intent(getActivity(), TopTenActivity.class);
+                String artistId = arrayOfArtists.get(position).id;
+                String artistName = arrayOfArtists.get(position).name;
+                detailIntent.putExtra("artistId", artistId);
+                detailIntent.putExtra("artistName", artistName);
+                getActivity().startActivity(detailIntent);
             }
         });
 
@@ -124,7 +129,6 @@ public class MainActivityFragment extends Fragment {
     }
 
     public void artistSearch(String artistName) {
-        // Run Spotify Query
         // Connect to the Spotify API with the wrapper
         SpotifyApi api = new SpotifyApi();
         // Create a SpotifyService object that we can use to get desire data
@@ -157,10 +161,10 @@ public class MainActivityFragment extends Fragment {
             imageURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
         }
         else {
-            int imageDiff = Math.abs(artist.images.get(0).width - 200);
+            int imageDiff = Math.abs(artist.images.get(0).width - size);
             imageURL = artist.images.get(0).url;
             for ( int i = 1 ; i < artist.images.size() ; i++){
-                if(Math.abs(artist.images.get(i).width - 200) < imageDiff){
+                if(Math.abs(artist.images.get(i).width - size) < imageDiff){
                     imageURL = artist.images.get(i).url;
                 }
             }
