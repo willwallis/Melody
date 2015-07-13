@@ -184,6 +184,11 @@ public class TopTenActivityFragment extends Fragment {
         }
     }
 
+    /**
+     * Searches Spotify APOI for Top Ten tracks for an artist.
+     * Selects country based on device default.
+     * @param artistId
+     */
     public void topTenSearch(String artistId) {
         // Connect to the Spotify API with the wrapper
         SpotifyApi api = new SpotifyApi();
@@ -197,6 +202,11 @@ public class TopTenActivityFragment extends Fragment {
         spotify.getArtistTopTrack(artistId, options, new Callback<Tracks>() {
             @Override
             public void success(Tracks tracks, Response response) {
+                if (tracks.tracks.size() < 1){
+                    String toastText = "No tracks found for this artist, sorry."; // what the toast should display
+                    Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+                    toast.show(); // display the toast
+                }
                 arrayOfTracks.clear();
                 for (Track track : tracks.tracks) {
                     arrayOfTracks.add(new TopTrack(track.name, pickTrackImage(track, 200), track.album.name));
@@ -212,6 +222,13 @@ public class TopTenActivityFragment extends Fragment {
 
 
     }
+
+    /**
+     * Method to pick the image closest to the requested size from spotify image list.
+     * @param track Track object returned by query
+     * @param size Preferred size of image.
+     * @return URL of the closest image match. Returns Spotify logo if none found.
+     */
 
     public String pickTrackImage(Track track, int size){
         String imageURL;

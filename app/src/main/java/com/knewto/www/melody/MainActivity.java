@@ -41,6 +41,7 @@ public class MainActivity extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
 
+        // Removed settings but kept method for P2. Will remove if not required.
         return super.onOptionsItemSelected(item);
     }
 
@@ -50,15 +51,22 @@ public class MainActivity extends ActionBarActivity {
         super.onNewIntent(intent);
     }
 
-    private void handleIntent(Intent intent) {
 
+    /**
+     * Calls the show results method with the Search intent query.
+     * @param intent
+     */
+    private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
             showResults(query);
-
         }
     }
 
+    /**
+     * Calls the Spotify Artist Search API in the Main Activity Fragment.
+     * @param query
+     */
     private void showResults(String query) {
         MainActivityFragment fragmentMain = (MainActivityFragment)getSupportFragmentManager().findFragmentById(R.id.fragment);
         fragmentMain.artistSearch(query);

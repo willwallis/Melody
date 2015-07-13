@@ -58,6 +58,7 @@ public class MainActivityFragment extends Fragment {
         arrayOfArtists = new ArrayList<ArtistProfile>();
         // Looked for saved instance and if found retrieve artist info, otherwise do open search
         if(savedInstanceState == null || !savedInstanceState.containsKey("artists")) {
+            // Used for testing. Will remove on the completion of P2.
 //                ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "6vWDO969PvNqNYHIOW5v0m");
 //                arrayOfArtists.add(tempProfile);
         }
@@ -177,6 +178,10 @@ public class MainActivityFragment extends Fragment {
         }
     }
 
+    /**
+     * Method to search the Spotify API. Uses call back to remain off main thread.
+     * @param artistName
+     */
     public void artistSearch(final String artistName) {
         // Connect to the Spotify API with the wrapper
         SpotifyApi api = new SpotifyApi();
@@ -210,6 +215,12 @@ public class MainActivityFragment extends Fragment {
         });
     }
 
+    /**
+     * Method to pick the image closest to the requested size from spotify image list.
+     * @param artist Artist object returned by query
+     * @param size Preferred size of image.
+     * @return URL of the closest image match. Returns Spotify logo if none found.
+     */
     public String pickArtistImage(Artist artist, int size){
         String imageURL;
         if (artist.images.size() == 0){
