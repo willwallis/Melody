@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.StrictMode;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -50,13 +52,23 @@ public class MainActivityFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
         // Create list of artists
         arrayOfArtists = new ArrayList<ArtistProfile>();
-        // Add temporary entry
-        ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "6vWDO969PvNqNYHIOW5v0m");
-        arrayOfArtists.add(tempProfile);
+        // Looked for saved instance and if found retrieve artist info, otherwise do open search
+        if(savedInstanceState == null || !savedInstanceState.containsKey("artists")) {
+//                ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "6vWDO969PvNqNYHIOW5v0m");
+//                arrayOfArtists.add(tempProfile);
+        }
+        else {
+            arrayOfArtists = savedInstanceState.getParcelableArrayList("artists");
+        }
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         // Create Adapter
         artistsAdapter = new ArtistsAdapter(getActivity(), arrayOfArtists);
 
@@ -81,19 +93,56 @@ public class MainActivityFragment extends Fragment {
         return fragmentView;
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList("artists", arrayOfArtists);
+        super.onSaveInstanceState(outState);
+    }
+
     /**
      *  Class defining model for Artist Profile to show in search results
      */
-    public class ArtistProfile {
+    public class ArtistProfile implements Parcelable {
         public String name;
         public String image;
         public String id;
 
-        public ArtistProfile(String name, String image, String id) {
+        public ArtistProfile (String name, String image, String id) {
             this.name = name;
             this.image = image;
             this.id = id;
         }
+
+        private ArtistProfile(Parcel in){
+            name = in.readString();
+            image = in.readString();
+            id = in.readString();
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel parcel, int i) {
+            parcel.writeString(name);
+            parcel.writeString(image);
+            parcel.writeString(id);
+        }
+
+        public final Parcelable.Creator<ArtistProfile> CREATOR = new Parcelable.Creator<ArtistProfile>() {
+            @Override
+            public ArtistProfile createFromParcel(Parcel parcel) {
+                return new ArtistProfile(parcel);
+            }
+
+            @Override
+            public ArtistProfile[] newArray(int i) {
+                return new ArtistProfile[i];
+            }
+
+        };
     }
 
     /**
@@ -128,7 +177,7 @@ public class MainActivityFragment extends Fragment {
         }
     }
 
-    public void artistSearch(String artistName) {
+    public void artistSearch(final String artistName) {
         // Connect to the Spotify API with the wrapper
         SpotifyApi api = new SpotifyApi();
         // Create a SpotifyService object that we can use to get desire data
@@ -141,6 +190,12 @@ public class MainActivityFragment extends Fragment {
         spotify.searchArtists(artistName, options, new Callback<ArtistsPager>() {
             @Override
             public void success(ArtistsPager artistsPager, Response response) {
+                if (artistsPager.artists.items.size() < 1){
+                    String toastText = "No artist found for: " + artistName + ", please try again."; // what the toast should display
+                    Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+                    toast.show(); // display the toast
+                }
+
                 arrayOfArtists.clear();
                 for(Artist artist : artistsPager.artists.items){
                     arrayOfArtists.add(new ArtistProfile(artist.name, pickArtistImage(artist, 200), artist.id));

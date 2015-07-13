@@ -2,6 +2,8 @@ package com.knewto.www.melody;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
@@ -19,6 +21,7 @@ import android.widget.Toast;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -44,25 +47,33 @@ public class TopTenActivityFragment extends Fragment {
     ArrayList<TopTrack> arrayOfTracks;
     TracksAdapter tracksAdapter;
 
-
     public TopTenActivityFragment() {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
         // Create list of tracks
         arrayOfTracks = new ArrayList<TopTrack>();
-        // Add temporary entry
-//        TopTrack tempProfile = new TopTrack("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "Funny Fun");
-//        arrayOfTracks.add(tempProfile);
-        // Get ID from intent
-        Intent intent = getActivity().getIntent();
-        if (intent != null && intent.hasExtra("artistId"))
-        {
-            String artistId = intent.getStringExtra("artistId");
-            topTenSearch(artistId);
+        // Looked for saved instance and if found retrieve track info, otherwise query spotify
+        if(savedInstanceState == null || !savedInstanceState.containsKey("tracks")) {
+            // Get ID from intent
+            Intent intent = getActivity().getIntent();
+            if (intent != null && intent.hasExtra("artistId"))
+            {
+                String artistId = intent.getStringExtra("artistId");
+                topTenSearch(artistId);
+            }
         }
+        else {
+            arrayOfTracks = savedInstanceState.getParcelableArrayList("tracks");
+        }
+    }
+
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         // Create Adapter
         tracksAdapter = new TracksAdapter(getActivity(), arrayOfTracks);
 
@@ -77,10 +88,8 @@ public class TopTenActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String trackName = arrayOfTracks.get(position).name;
                 // Display toast if track is selected - placeholder until P2
-                Context context = getActivity(); // the current context
-                int duration = Toast.LENGTH_SHORT; // how long the toast should display
                 String toastText = "Playing: " + trackName; // what the toast should display
-                Toast toast = Toast.makeText(context, toastText, duration);  // create the toast
+                Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
                 toast.show(); // display the toast
 
             }
@@ -89,10 +98,16 @@ public class TopTenActivityFragment extends Fragment {
         return fragmentView;
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList("tracks", arrayOfTracks);
+        super.onSaveInstanceState(outState);
+    }
+
     /**
      *  Class defining model for Track to show in search results
      */
-    public class TopTrack {
+    public class TopTrack implements Parcelable {
         public String name;
         public String image;
         public String album;
@@ -102,6 +117,37 @@ public class TopTenActivityFragment extends Fragment {
             this.image = image;
             this.album = album;
         }
+
+        private TopTrack(Parcel in){
+            name = in.readString();
+            image = in.readString();
+            album = in.readString();
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel parcel, int i) {
+            parcel.writeString(name);
+            parcel.writeString(image);
+            parcel.writeString(album);
+        }
+
+        public final Parcelable.Creator<TopTrack> CREATOR = new Parcelable.Creator<TopTrack>() {
+            @Override
+            public TopTrack createFromParcel(Parcel parcel) {
+                return new TopTrack(parcel);
+            }
+
+            @Override
+            public TopTrack[] newArray(int i) {
+                return new TopTrack[i];
+            }
+
+        };
     }
 
     /**
