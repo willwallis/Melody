@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -100,83 +101,6 @@ public class MainActivityFragment extends Fragment {
         super.onSaveInstanceState(outState);
     }
 
-    /**
-     *  Class defining model for Artist Profile to show in search results
-     */
-    public class ArtistProfile implements Parcelable {
-        public String name;
-        public String image;
-        public String id;
-
-        public ArtistProfile (String name, String image, String id) {
-            this.name = name;
-            this.image = image;
-            this.id = id;
-        }
-
-        private ArtistProfile(Parcel in){
-            name = in.readString();
-            image = in.readString();
-            id = in.readString();
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel parcel, int i) {
-            parcel.writeString(name);
-            parcel.writeString(image);
-            parcel.writeString(id);
-        }
-
-        public final Parcelable.Creator<ArtistProfile> CREATOR = new Parcelable.Creator<ArtistProfile>() {
-            @Override
-            public ArtistProfile createFromParcel(Parcel parcel) {
-                return new ArtistProfile(parcel);
-            }
-
-            @Override
-            public ArtistProfile[] newArray(int i) {
-                return new ArtistProfile[i];
-            }
-
-        };
-    }
-
-    /**
-     * ArrayAdapter to contain Artist Profiles returned from search
-     */
-    public class ArtistsAdapter extends ArrayAdapter<ArtistProfile> {
-        public ArtistsAdapter(Context context, ArrayList<ArtistProfile> artistProfile) {
-            super(context, 0, artistProfile);
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            // Get the data item for this position
-            ArtistProfile artistProfile = getItem(position);
-            // Check if an existing view is being reused, otherwise inflate the view
-            if (convertView == null) {
-                convertView = LayoutInflater.from(getContext()).inflate(R.layout.artist_list_item, parent, false);
-            }
-            // Lookup view for data population
-            TextView artistName = (TextView) convertView.findViewById(R.id.item_artist_name);
-            // Populate the data into the template view using the data object
-            artistName.setText(artistProfile.name);
-
-            // Load image with Picasso
-            ImageView artistImage = (ImageView) convertView.findViewById(R.id.item_artist_pic);
-
-            Picasso.with(getContext())
-                    .load(artistProfile.image)
-                    .into(artistImage);
-            // Return the completed view to render on screen
-            return convertView;
-        }
-    }
 
     /**
      * Method to search the Spotify API. Uses call back to remain off main thread.
@@ -211,6 +135,9 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void failure(RetrofitError error) {
                 Log.d("Artist search failure", error.toString());
+                String toastText = "Spotify search failed"; // what the toast should display
+                Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+                toast.show(); // display the toast
             }
         });
     }
@@ -222,9 +149,10 @@ public class MainActivityFragment extends Fragment {
      * @return URL of the closest image match. Returns Spotify logo if none found.
      */
     public String pickArtistImage(Artist artist, int size){
+        String defaultURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
         String imageURL;
         if (artist.images.size() == 0){
-            imageURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
+            imageURL = defaultURL;
         }
         else {
             int imageDiff = Math.abs(artist.images.get(0).width - size);
@@ -235,6 +163,10 @@ public class MainActivityFragment extends Fragment {
                 }
             }
         }
-        return imageURL;
+        // Check that URL is valid before returning
+        if(URLUtil.isValidUrl(imageURL))
+            return imageURL;
+        else
+            return defaultURL;
     }
 }

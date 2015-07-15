@@ -1,16 +1,21 @@
 package com.knewto.www.melody;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -105,87 +110,7 @@ public class TopTenActivityFragment extends Fragment {
     }
 
     /**
-     *  Class defining model for Track to show in search results
-     */
-    public class TopTrack implements Parcelable {
-        public String name;
-        public String image;
-        public String album;
-
-        public TopTrack(String name, String image, String album) {
-            this.name = name;
-            this.image = image;
-            this.album = album;
-        }
-
-        private TopTrack(Parcel in){
-            name = in.readString();
-            image = in.readString();
-            album = in.readString();
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel parcel, int i) {
-            parcel.writeString(name);
-            parcel.writeString(image);
-            parcel.writeString(album);
-        }
-
-        public final Parcelable.Creator<TopTrack> CREATOR = new Parcelable.Creator<TopTrack>() {
-            @Override
-            public TopTrack createFromParcel(Parcel parcel) {
-                return new TopTrack(parcel);
-            }
-
-            @Override
-            public TopTrack[] newArray(int i) {
-                return new TopTrack[i];
-            }
-
-        };
-    }
-
-    /**
-     * ArrayAdapter to contain Artist Profiles returned from search
-     */
-    public class TracksAdapter extends ArrayAdapter<TopTrack> {
-        public TracksAdapter(Context context, ArrayList<TopTrack> topTrack) {
-            super(context, 0, topTrack);
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            // Get the data item for this position
-            TopTrack topTrack = getItem(position);
-            // Check if an existing view is being reused, otherwise inflate the view
-            if (convertView == null) {
-                convertView = LayoutInflater.from(getContext()).inflate(R.layout.track_list_item, parent, false);
-            }
-            // Lookup view for data population
-            TextView trackName = (TextView) convertView.findViewById(R.id.item_track_name);
-            TextView albumName = (TextView) convertView.findViewById(R.id.item_album_name);
-            // Populate the data into the template view using the data object
-            trackName.setText(topTrack.name);
-            albumName.setText(topTrack.album);
-
-            // Load image with Picasso
-            ImageView trackImage = (ImageView) convertView.findViewById(R.id.item_track_pic);
-
-            Picasso.with(getContext())
-                    .load(topTrack.image)
-                    .into(trackImage);
-            // Return the completed view to render on screen
-            return convertView;
-        }
-    }
-
-    /**
-     * Searches Spotify APOI for Top Ten tracks for an artist.
+     * Searches Spotify API for Top Ten tracks for an artist.
      * Selects country based on device default.
      * @param artistId
      */
@@ -217,6 +142,9 @@ public class TopTenActivityFragment extends Fragment {
             @Override
             public void failure(RetrofitError error) {
                 Log.d("Top 10 search failure", error.toString());
+                String toastText = "Spotify search failed"; // what the toast should display
+                Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+                toast.show(); // display the toast
             }
         });
 
@@ -229,11 +157,11 @@ public class TopTenActivityFragment extends Fragment {
      * @param size Preferred size of image.
      * @return URL of the closest image match. Returns Spotify logo if none found.
      */
-
     public String pickTrackImage(Track track, int size){
+        String defaultURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
         String imageURL;
         if (track.album.images.size() == 0){
-            imageURL = "https://s.yimg.com/cd/resizer/2.0/FIT_TO_WIDTH-w200/e4c5009d6b9eefbbda64587d3a49064c22db7821.jpg";
+            imageURL = defaultURL;
         }
         else {
             int imageDiff = Math.abs(track.album.images.get(0).width - size);
@@ -244,7 +172,11 @@ public class TopTenActivityFragment extends Fragment {
                 }
             }
         }
-        return imageURL;
+        // Check that URL is valid before returning
+        if(URLUtil.isValidUrl(imageURL))
+            return imageURL;
+        else
+            return defaultURL;
     }
 
 }

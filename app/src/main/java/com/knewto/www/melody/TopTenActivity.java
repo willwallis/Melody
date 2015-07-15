@@ -1,6 +1,8 @@
 package com.knewto.www.melody;
 
+import android.annotation.TargetApi;
 import android.content.Intent;
+import android.os.Build;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -40,5 +42,14 @@ public class TopTenActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    public Intent getParentActivityIntent() {
+// add the clear top flag - which checks if the parent (main)
+// activity is already running and avoids recreating it
+        return super.getParentActivityIntent()
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     }
 }
