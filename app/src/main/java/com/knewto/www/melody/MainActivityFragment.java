@@ -66,6 +66,11 @@ public class MainActivityFragment extends Fragment {
         else {
             arrayOfArtists = savedInstanceState.getParcelableArrayList("artists");
         }
+        if (arrayOfArtists.size() == 0) {
+            String toastText = "Redo Query"; // what the toast should display
+            Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+            toast.show(); // display the toast
+        }
     }
 
     @Override
@@ -130,6 +135,11 @@ public class MainActivityFragment extends Fragment {
                     arrayOfArtists.add(new ArtistProfile(artist.name, pickArtistImage(artist, 200), artist.id));
                 }
                 artistsAdapter.notifyDataSetChanged();
+                if (arrayOfArtists.size() == 0) {
+                    String toastText = "Redo Query"; // what the toast should display
+                    Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+                    toast.show(); // display the toast
+                }
             }
 
             @Override
