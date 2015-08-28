@@ -5,24 +5,31 @@ package com.knewto.www.melody;
  * Class defining model for Track to show in search results
  */
 
+import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 public class TopTrack implements Parcelable {
     public String name;
     public String image;
+    public String bigImage;
     public String album;
+    public String trackUrl;
 
-    public TopTrack(String name, String image, String album) {
+    public TopTrack(String name, String image, String bigImage, String album, String trackUrl) {
         this.name = name;
         this.image = image;
+        this.bigImage = bigImage;
         this.album = album;
+        this.trackUrl = trackUrl;
     }
 
     private TopTrack(Parcel in){
         name = in.readString();
         image = in.readString();
+        bigImage = in.readString();
         album = in.readString();
+        trackUrl = in.readString();
     }
 
     @Override
@@ -34,7 +41,9 @@ public class TopTrack implements Parcelable {
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeString(name);
         parcel.writeString(image);
+        parcel.writeString(bigImage);
         parcel.writeString(album);
+        parcel.writeString(trackUrl);
     }
 
     public final Parcelable.Creator<TopTrack> CREATOR = new Parcelable.Creator<TopTrack>() {

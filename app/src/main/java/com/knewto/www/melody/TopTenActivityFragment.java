@@ -55,6 +55,8 @@ public class TopTenActivityFragment extends Fragment {
     public TopTenActivityFragment() {
     }
 
+    String artistName = "";
+
     @Override
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
@@ -67,6 +69,7 @@ public class TopTenActivityFragment extends Fragment {
             if (intent != null && intent.hasExtra("artistId"))
             {
                 String artistId = intent.getStringExtra("artistId");
+                artistName = intent.getStringExtra("artistName");
                 topTenSearch(artistId);
             }
         }
@@ -91,11 +94,20 @@ public class TopTenActivityFragment extends Fragment {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String albumName = arrayOfTracks.get(position).album;
                 String trackName = arrayOfTracks.get(position).name;
-                // Display toast if track is selected - placeholder until P2
-                String toastText = "Playing: " + trackName; // what the toast should display
-                Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
-                toast.show(); // display the toast
+                String imageName = arrayOfTracks.get(position).bigImage;
+                String trackUrl = arrayOfTracks.get(position).trackUrl;
+
+                // Intent to open Player
+                Intent playerIntent = new Intent(getActivity(), PlayerActivity.class);
+                playerIntent.putExtra("artistName", artistName);
+                playerIntent.putExtra("albumName", albumName);
+                playerIntent.putExtra("trackName", trackName);
+                playerIntent.putExtra("imageName", imageName);
+                playerIntent.putExtra("trackUrl", trackUrl);
+                getActivity().startActivity(playerIntent);
+
 
             }
         });
@@ -134,7 +146,7 @@ public class TopTenActivityFragment extends Fragment {
                 }
                 arrayOfTracks.clear();
                 for (Track track : tracks.tracks) {
-                    arrayOfTracks.add(new TopTrack(track.name, pickTrackImage(track, 200), track.album.name));
+                    arrayOfTracks.add(new TopTrack(track.name, pickTrackImage(track, 200), pickTrackImage(track, 1000), track.album.name, track.preview_url));
                 }
                 tracksAdapter.notifyDataSetChanged();
             }
