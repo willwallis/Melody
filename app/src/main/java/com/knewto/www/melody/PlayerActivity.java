@@ -4,7 +4,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.IBinder;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -81,10 +83,12 @@ public class PlayerActivity extends AppCompatActivity {
         }
     };
 
-    public int playSong(){
-        int num = 3;
-        if (musicBound)
-            num = musicService.getMillionBucks();
-        return num;
+    public int playSong(Uri trackUrl){
+        int songLength = 0;
+        if (musicBound) {
+            songLength = musicService.playSong(trackUrl);
+        }
+        return songLength;
     }
+
 }

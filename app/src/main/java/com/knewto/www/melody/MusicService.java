@@ -37,8 +37,8 @@ public class MusicService extends Service implements
 
     @Override
     public boolean onUnbind(Intent intent){
-//        player.stop();
-//        player.release();
+        player.stop();
+        player.release();
         return false;
     }
 
@@ -68,22 +68,17 @@ public class MusicService extends Service implements
         player.setOnErrorListener(this);
     }
 
-    // set the song url
-    public void setSong(Uri trackUrl){
-        songUrl = trackUrl;
-        Log.v("MUSIC SERVICE", "Track Received" + trackUrl);
-    }
-
     // play a song
-    public void playSong() {
+    public int playSong(Uri trackUrl) {
         player.reset();
         try {
-            player.setDataSource(getApplicationContext(), songUrl);
+            player.setDataSource(getApplicationContext(), trackUrl);
         }
         catch (Exception e) {
             Log.e("MUSIC SERVICE", "Error retrieving track", e);
         }
         player.prepareAsync();
+        return player.getDuration();
     }
 
 

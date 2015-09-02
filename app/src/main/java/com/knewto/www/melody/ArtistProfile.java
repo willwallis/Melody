@@ -37,7 +37,7 @@ public class ArtistProfile implements Parcelable {
         parcel.writeString(id);
     }
 
-    public final Parcelable.Creator<ArtistProfile> CREATOR = new Parcelable.Creator<ArtistProfile>() {
+    public static final Parcelable.Creator<ArtistProfile> CREATOR = new Parcelable.Creator<ArtistProfile>() {
         @Override
         public ArtistProfile createFromParcel(Parcel parcel) {
             return new ArtistProfile(parcel);

@@ -106,6 +106,8 @@ public class TopTenActivityFragment extends Fragment {
                 playerIntent.putExtra("trackName", trackName);
                 playerIntent.putExtra("imageName", imageName);
                 playerIntent.putExtra("trackUrl", trackUrl);
+                playerIntent.putExtra("posValue", position);
+                playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
                 getActivity().startActivity(playerIntent);
 
 

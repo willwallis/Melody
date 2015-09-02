@@ -46,7 +46,7 @@ public class TopTrack implements Parcelable {
         parcel.writeString(trackUrl);
     }
 
-    public final Parcelable.Creator<TopTrack> CREATOR = new Parcelable.Creator<TopTrack>() {
+    public static final Parcelable.Creator<TopTrack> CREATOR = new Parcelable.Creator<TopTrack>() {
         @Override
         public TopTrack createFromParcel(Parcel parcel) {
             return new TopTrack(parcel);
