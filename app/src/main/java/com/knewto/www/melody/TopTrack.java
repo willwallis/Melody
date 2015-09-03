@@ -11,13 +11,15 @@ import android.os.Parcelable;
 
 public class TopTrack implements Parcelable {
     public String name;
+    public String artist;
     public String image;
     public String bigImage;
     public String album;
     public String trackUrl;
 
-    public TopTrack(String name, String image, String bigImage, String album, String trackUrl) {
+    public TopTrack(String name, String artist, String image, String bigImage, String album, String trackUrl) {
         this.name = name;
+        this.artist = artist;
         this.image = image;
         this.bigImage = bigImage;
         this.album = album;
@@ -26,6 +28,7 @@ public class TopTrack implements Parcelable {
 
     private TopTrack(Parcel in){
         name = in.readString();
+        artist = in.readString();
         image = in.readString();
         bigImage = in.readString();
         album = in.readString();
@@ -40,6 +43,7 @@ public class TopTrack implements Parcelable {
     @Override
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeString(name);
+        parcel.writeString(artist);
         parcel.writeString(image);
         parcel.writeString(bigImage);
         parcel.writeString(album);

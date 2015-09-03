@@ -6,47 +6,54 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.IBinder;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 public class PlayerActivity extends AppCompatActivity {
     MusicService musicService;
     boolean musicBound = false;
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Bind to LocalService
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, musicConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        // Unbind from the service
-        if (musicBound) {
-            unbindService(musicConnection);
-            musicBound = false;
-        }
-    }
-
+    boolean isBound;
+    final String TAG = "Player Activty";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent intent = new Intent(this, MusicService.class);
+        startService(intent);
         setContentView(R.layout.activity_player);
-        }
-
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_player, menu);
         return true;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Bind to MusicService
+        doBindToService();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Unbind from the Music Service
+        doUnbindService();
+    }
+
+    @Override
+    protected  void onDestroy() {
+        super.onDestroy();
+        if(isFinishing()){
+            Intent intentStopService = new Intent(this, MusicService.class );
+            stopService(intentStopService);
+        }
     }
 
     @Override
@@ -64,7 +71,20 @@ public class PlayerActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // defines callbacks for service binding.
+    // BINDING METHODS
+    private void doBindToService() {
+        if(!isBound){
+            Intent bindIntent = new Intent(this, MusicService.class);
+            isBound = bindService(bindIntent, musicConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    private void doUnbindService() {
+        unbindService(musicConnection);
+        isBound = false;
+    }
+
+
     /** Defines callbacks for service binding, passed to bindService() */
     private ServiceConnection musicConnection = new ServiceConnection() {
 
@@ -79,16 +99,42 @@ public class PlayerActivity extends AppCompatActivity {
 
         @Override
         public void onServiceDisconnected(ComponentName className) {
+
             musicBound = false;
         }
     };
 
-    public int playSong(Uri trackUrl){
-        int songLength = 0;
+
+    // Player methods
+
+    public void loadSong(Uri trackUrl){
         if (musicBound) {
-            songLength = musicService.playSong(trackUrl);
+            Log.v(TAG, "load song");
+            musicService.loadSong(trackUrl);
         }
-        return songLength;
+    }
+
+    public void playSong(){
+        if (musicBound) {
+            Log.v(TAG, "play song");
+            musicService.playSong();
+        }
+    }
+
+    public boolean pauseSong(boolean onOff){
+        if (musicBound){
+            Log.v(TAG, "pause song: " + onOff);
+            return musicService.pauseSong(onOff);
+        }
+        else
+            return false;
+    }
+
+    public void scrubSong(int position){
+        if (musicBound) {
+            Log.v(TAG, "scrub song");
+            musicService.scrubSong(position);
+        }
     }
 
 }

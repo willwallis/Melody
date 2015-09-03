@@ -94,23 +94,11 @@ public class TopTenActivityFragment extends Fragment {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String albumName = arrayOfTracks.get(position).album;
-                String trackName = arrayOfTracks.get(position).name;
-                String imageName = arrayOfTracks.get(position).bigImage;
-                String trackUrl = arrayOfTracks.get(position).trackUrl;
-
                 // Intent to open Player
                 Intent playerIntent = new Intent(getActivity(), PlayerActivity.class);
-                playerIntent.putExtra("artistName", artistName);
-                playerIntent.putExtra("albumName", albumName);
-                playerIntent.putExtra("trackName", trackName);
-                playerIntent.putExtra("imageName", imageName);
-                playerIntent.putExtra("trackUrl", trackUrl);
                 playerIntent.putExtra("posValue", position);
                 playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
                 getActivity().startActivity(playerIntent);
-
-
             }
         });
 
@@ -148,7 +136,7 @@ public class TopTenActivityFragment extends Fragment {
                 }
                 arrayOfTracks.clear();
                 for (Track track : tracks.tracks) {
-                    arrayOfTracks.add(new TopTrack(track.name, pickTrackImage(track, 200), pickTrackImage(track, 1000), track.album.name, track.preview_url));
+                    arrayOfTracks.add(new TopTrack(track.name, artistName, pickTrackImage(track, 200), pickTrackImage(track, 1000), track.album.name, track.preview_url));
                 }
                 tracksAdapter.notifyDataSetChanged();
             }

@@ -8,7 +8,9 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.os.Handler;
 
 /**
  * Created by willwallis on 8/24/15.
@@ -22,6 +24,12 @@ public class MusicService extends Service implements
     private Uri songUrl;
     // instance variable representing inner binder class
     private final IBinder musicBind = new MusicBinder();
+    // song playing and paused flags
+    private boolean songReady = false; // used to stop calls while preparing
+    private boolean songPaused = false;
+    // Intent and handler to broadcast track position
+    Intent trackIntent;
+    private final Handler handler = new Handler();
 
     // BINDING SECTION
     public class MusicBinder extends Binder {
@@ -36,28 +44,26 @@ public class MusicService extends Service implements
     }
 
     @Override
-    public boolean onUnbind(Intent intent){
-        player.stop();
-        player.release();
+    public boolean onUnbind(Intent intent) {
+//        player.stop();
+//        player.release();
         return false;
     }
 
-   // BINDING TEST
-   public int getMillionBucks() {
-        return 1000000;
-    }
-
-   // MUSIC PLAYER SECTION
+    // MUSIC PLAYER SECTION
     // Create service
     public void onCreate() {
         super.onCreate();
         // create player
-        player = new MediaPlayer();
-        initMusicPlayer();
+        if (player == null) {
+            player = new MediaPlayer();
+        initMusicPlayer();}
+        // create intent to send current position
+        trackIntent = new Intent("current-track-position");
     }
 
     // Initialise the mediaplayer
-    public void initMusicPlayer(){
+    public void initMusicPlayer() {
         // Lets playback continue when device becomes idle.
         player.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         // Set stream type to music
@@ -68,24 +74,47 @@ public class MusicService extends Service implements
         player.setOnErrorListener(this);
     }
 
-    // play a song
-    public int playSong(Uri trackUrl) {
+    // load a song
+    public void loadSong(Uri trackUrl) {
+        songReady = false;
         player.reset();
         try {
             player.setDataSource(getApplicationContext(), trackUrl);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e("MUSIC SERVICE", "Error retrieving track", e);
         }
-        player.prepareAsync();
-        return player.getDuration();
+        playSong();
     }
 
+    // play a song
+    public void playSong() {
+        player.prepareAsync();
+    }
 
+    // pause and restart a song
+    public boolean pauseSong(boolean onOff) {
+        if (songReady) {
+            if (onOff) {
+                player.pause();
+                songPaused = true;
+            } else {
+                player.start();
+                songPaused = false;
+            }
+            return true;
+        } else
+            return false;
+    }
+
+    // play a song
+    public void scrubSong(int position) {
+        if (songReady)
+            player.seekTo(position);
+    }
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-
+        songReady = false;
     }
 
     @Override
@@ -95,7 +124,27 @@ public class MusicService extends Service implements
 
     @Override
     public void onPrepared(MediaPlayer mp) {
+        songReady = true;
         // start playback when prepared
-        mp.start();
+        if (!songPaused) {
+            mp.start();
+        }
+        // publish max length
+        trackIntent.putExtra("maxTime", mp.getDuration());
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(trackIntent);
+        // start current position runnable
+        handler.removeCallbacks(broadcastUpdates);
+        handler.post(broadcastUpdates);
     }
+
+    public Runnable broadcastUpdates = new Runnable() {
+        public void run() {
+            if (songReady) {
+                trackIntent.putExtra("currentPosition", player.getCurrentPosition());
+                LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(trackIntent);
+                handler.postDelayed(this, 500);
+            }
+        }
+    };
+
 }
