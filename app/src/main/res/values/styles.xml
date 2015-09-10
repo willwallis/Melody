@@ -24,8 +24,8 @@
         <item name="android:layout_weight">1</item>
     </style>
 
-    android:layout_width="0dp"
-    android:layout_height="1dp"
-    android:layout_weight="1"
+    <style name="ArtistList">
+
+    </style>
 
 </resources>

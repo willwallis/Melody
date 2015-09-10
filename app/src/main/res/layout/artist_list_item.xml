@@ -4,7 +4,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:minHeight="72dp">
+        android:minHeight="72dp"
+        android:background="@drawable/touch_selector">
 
         <ImageView
             android:id="@+id/item_artist_pic"

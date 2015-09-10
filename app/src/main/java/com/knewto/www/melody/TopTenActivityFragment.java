@@ -1,6 +1,7 @@
 package com.knewto.www.melody;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -48,13 +49,22 @@ import retrofit.client.Response;
  */
 public class TopTenActivityFragment extends Fragment {
 
+    private static final String LOG_TAG = TopTenActivityFragment.class.getSimpleName();
     // Declare arraylist to contain Track profiles and adapter to bind with list view
     ArrayList<TopTrack> arrayOfTracks;
     TracksAdapter tracksAdapter;
 
+    // Interface to handle item clicks
+    OnSongSelected mCallback;
+
+    public interface OnSongSelected {
+        public void playSelectedSong(ArrayList<TopTrack> arrayOfTracks, int position);
+    }
+
     public TopTenActivityFragment() {
     }
 
+    String artistId;
     String artistName = "";
 
     @Override
@@ -66,15 +76,28 @@ public class TopTenActivityFragment extends Fragment {
         if(savedInstanceState == null || !savedInstanceState.containsKey("tracks")) {
             // Get ID from intent
             Intent intent = getActivity().getIntent();
+            Log.v(LOG_TAG, "Check Intent");
             if (intent != null && intent.hasExtra("artistId"))
             {
-                String artistId = intent.getStringExtra("artistId");
+                Log.v(LOG_TAG, "Intent Found");
+                artistId = intent.getStringExtra("artistId");
                 artistName = intent.getStringExtra("artistName");
                 topTenSearch(artistId);
+            }
+            else {
+                Bundle arguments = getArguments();
+                Log.v(LOG_TAG, "Check Bundle");
+                if (arguments != null) {
+                    Log.v(LOG_TAG, "Bundle Found");
+                    artistId = arguments.getString("artistId");
+                    artistName = arguments.getString("artistName");
+                    topTenSearch(artistId);
+                }
             }
         }
         else {
             arrayOfTracks = savedInstanceState.getParcelableArrayList("tracks");
+            Log.v(LOG_TAG, "Saved Instance");
         }
     }
 
@@ -95,14 +118,29 @@ public class TopTenActivityFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // Intent to open Player
-                Intent playerIntent = new Intent(getActivity(), PlayerActivity.class);
-                playerIntent.putExtra("posValue", position);
-                playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
-                getActivity().startActivity(playerIntent);
+                mCallback.playSelectedSong(arrayOfTracks, position);
+//                Intent playerIntent = new Intent(getActivity(), PlayerActivity.class);
+//                playerIntent.putExtra("posValue", position);
+//                playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
+//                getActivity().startActivity(playerIntent);
             }
         });
 
         return fragmentView;
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // This makes sure that the container activity has implemented
+        // the callback interface. If not, it throws an exception
+        try {
+            mCallback = (OnSongSelected) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement OnSongSelected ");
+        }
     }
 
     @Override

@@ -48,6 +48,15 @@ public class MainActivityFragment extends Fragment {
     // Declare arraylist to contain Artist profiles and adapter to bind with list view
     ArrayList<ArtistProfile> arrayOfArtists;
     ArtistsAdapter artistsAdapter;
+    int mPosition;
+
+    // Interface to handle item clicks
+    OnArtistSelected mCallback;
+
+    public interface OnArtistSelected {
+        public void displayTopTen(String id, String name);
+    }
+
 
     public MainActivityFragment() {
     }
@@ -65,6 +74,7 @@ public class MainActivityFragment extends Fragment {
         }
         else {
             arrayOfArtists = savedInstanceState.getParcelableArrayList("artists");
+            mPosition = savedInstanceState.getInt("currentPosition");
         }
         if (arrayOfArtists.size() == 0) {
             String toastText = "Redo Query"; // what the toast should display
@@ -83,17 +93,21 @@ public class MainActivityFragment extends Fragment {
         View fragmentView = inflater.inflate(R.layout.fragment_main, container, false);
             ListView listview = (ListView) fragmentView.findViewById(R.id.artist_list);
             listview.setAdapter(artistsAdapter);
+            listview.setSelection(mPosition);
+//            listview.smoothScrollToPosition(mPosition);  // Can't get this to work for me.
 
         // Responds to click on list item
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent detailIntent = new Intent(getActivity(), TopTenActivity.class);
+                mPosition = position;
                 String artistId = arrayOfArtists.get(position).id;
                 String artistName = arrayOfArtists.get(position).name;
-                detailIntent.putExtra("artistId", artistId);
-                detailIntent.putExtra("artistName", artistName);
-                getActivity().startActivity(detailIntent);
+                mCallback.displayTopTen(artistId, artistName);
+//                Intent detailIntent = new Intent(getActivity(), TopTenActivity.class);
+//                detailIntent.putExtra("artistId", artistId);
+//                detailIntent.putExtra("artistName", artistName);
+//                getActivity().startActivity(detailIntent);
             }
         });
 
@@ -103,7 +117,23 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelableArrayList("artists", arrayOfArtists);
+        if (mPosition != ListView.INVALID_POSITION)
+            outState.putInt("currentPosition", mPosition);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // This makes sure that the container activity has implemented
+        // the callback interface. If not, it throws an exception
+        try {
+            mCallback = (OnArtistSelected) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement OnArtistSelected ");
+        }
     }
 
 

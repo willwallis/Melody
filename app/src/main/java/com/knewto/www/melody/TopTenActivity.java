@@ -9,13 +9,21 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.ArrayList;
 
-public class TopTenActivity extends ActionBarActivity {
+
+public class TopTenActivity extends ActionBarActivity implements TopTenActivityFragment.OnSongSelected {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_top_ten);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.top_ten_container, new TopTenActivityFragment())
+                    .commit();
+        }
+
         ActionBar actionBar = getSupportActionBar();
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra("artistName")) {
@@ -43,6 +51,15 @@ public class TopTenActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    public void playSelectedSong (ArrayList<TopTrack> arrayOfTracks, int position) {
+        // If called from top ten activity we can assume phone version
+        Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
+        playerIntent.putExtra("posValue", position);
+        playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
+        this.startActivity(playerIntent);
+    }
+
 
 
     @Override @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
