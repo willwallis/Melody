@@ -49,6 +49,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.knewto.www.melody.TopTenActivity" />
         </activity>
+        <service android:name=".service.SongService" />
+        <service android:name=".service.PlayerService" />
         <service android:name="LocalService" />
         <service android:name="MusicService" />
     </application>

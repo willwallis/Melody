@@ -76,11 +76,11 @@ public class MainActivityFragment extends Fragment {
             arrayOfArtists = savedInstanceState.getParcelableArrayList("artists");
             mPosition = savedInstanceState.getInt("currentPosition");
         }
-        if (arrayOfArtists.size() == 0) {
-            String toastText = "Redo Query"; // what the toast should display
-            Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
-            toast.show(); // display the toast
-        }
+//        if (arrayOfArtists.size() == 0) {
+//            String toastText = "Redo Query"; // what the toast should display
+//            Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
+//            toast.show(); // display the toast
+//        }
     }
 
     @Override

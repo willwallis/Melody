@@ -13,6 +13,8 @@ import android.support.v7.widget.SearchView;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.knewto.www.melody.service.SongService;
+
 import java.util.ArrayList;
 
 
@@ -43,6 +45,9 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
             mTwoPane = false;
         }
         handleIntent(getIntent());
+        // Start Music Service
+        Intent songIntent = new Intent(this, SongService.class);
+        startService(songIntent);
     }
 
     @Override

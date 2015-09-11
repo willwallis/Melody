@@ -6,7 +6,7 @@
     <string name="search_hint">Search artists</string>
     <string name="title_activity_top_ten">Top 10 Tracks</string>
     <string name="blank_item">blank</string>
-    <string name="title_activity_player">Melody Player</string>
+    <string name="title_activity_player">Now Playing</string>
 
     <string name="player_artist">Artist Name</string>
     <string name="player_album">Album Name</string>
