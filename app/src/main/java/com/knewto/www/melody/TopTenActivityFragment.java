@@ -119,10 +119,6 @@ public class TopTenActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 // Intent to open Player
                 mCallback.playSelectedSong(arrayOfTracks, position);
-//                Intent playerIntent = new Intent(getActivity(), PlayerActivity.class);
-//                playerIntent.putExtra("posValue", position);
-//                playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
-//                getActivity().startActivity(playerIntent);
             }
         });
 

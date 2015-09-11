@@ -130,7 +130,7 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
         }
         else {
             // phone version, open dialog as fragment  -- note will never be called
-            Intent playerIntent = new Intent(this, PlayerActivity.class);
+            Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
             playerIntent.putExtra("posValue", position);
             playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
             this.startActivity(playerIntent);

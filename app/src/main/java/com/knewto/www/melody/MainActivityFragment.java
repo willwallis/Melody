@@ -104,10 +104,6 @@ public class MainActivityFragment extends Fragment {
                 String artistId = arrayOfArtists.get(position).id;
                 String artistName = arrayOfArtists.get(position).name;
                 mCallback.displayTopTen(artistId, artistName);
-//                Intent detailIntent = new Intent(getActivity(), TopTenActivity.class);
-//                detailIntent.putExtra("artistId", artistId);
-//                detailIntent.putExtra("artistName", artistName);
-//                getActivity().startActivity(detailIntent);
             }
         });
 

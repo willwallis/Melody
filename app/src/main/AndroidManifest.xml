@@ -34,14 +34,6 @@
                 android:value="com.knewto.www.melody.MainActivity" />
         </activity>
         <activity
-            android:name=".PlayerActivity"
-            android:label="@string/title_activity_player"
-            android:parentActivityName=".TopTenActivity" >
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.knewto.www.melody.TopTenActivity" />
-        </activity>
-        <activity
             android:name=".EmbeddedPlayerActivity"
             android:label="@string/title_activity_player"
             android:parentActivityName=".TopTenActivity" >
@@ -50,9 +42,6 @@
                 android:value="com.knewto.www.melody.TopTenActivity" />
         </activity>
         <service android:name=".service.SongService" />
-        <service android:name=".service.PlayerService" />
-        <service android:name="LocalService" />
-        <service android:name="MusicService" />
     </application>
 
 </manifest>
