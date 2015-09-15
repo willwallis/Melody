@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.net.Uri;
 import android.support.v4.app.DialogFragment;
 import android.os.Bundle;
@@ -19,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.knewto.www.melody.data.TrackContract;
 import com.squareup.picasso.Picasso;
 
 import java.text.SimpleDateFormat;
@@ -39,9 +41,12 @@ public class DialogPlayerFragment extends DialogFragment {
     boolean dialogTablet = false;                               // used to decide whether to display title on tablet
 
     // Track variables
-    ArrayList<TopTrack> arrayOfTracks;
+    Cursor trackCursor;
     int position = 0;
+
+//    ArrayList<TopTrack> arrayOfTracks;
     String artistName = "Artist Name";
+    String artistId = "Artist ID";
     String albumName = "Album Name";
     String trackName = "Track Title";
     String imageName = "";
@@ -67,7 +72,6 @@ public class DialogPlayerFragment extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        Intent intent = getActivity().getIntent();
         View view = inflater.inflate(R.layout.fragment_player, container, false);
 
         // Get all the image elements
@@ -82,36 +86,38 @@ public class DialogPlayerFragment extends DialogFragment {
         playButton = (ImageButton) view.findViewById(R.id.icon_play_pause);
         nextButton = (ImageButton) view.findViewById(R.id.icon_forward);
 
+        Intent intent = getActivity().getIntent();
         Bundle arguments = getArguments();
 
         // Retrieve saved instance state if exists
         if (savedInstanceState != null && savedInstanceState.containsKey("isPlaying")) {
-            arrayOfTracks = savedInstanceState.getParcelableArrayList("tracks");
+//            arrayOfTracks = savedInstanceState.getParcelableArrayList("tracks");
+            artistId = savedInstanceState.getString("artistId");
             position = savedInstanceState.getInt("position");
             dialogTablet = savedInstanceState.getBoolean("dialogTablet");
             isPlaying = savedInstanceState.getBoolean("isPlaying");
-            if (isPlaying)
-                playButton.setImageResource(android.R.drawable.ic_media_pause);
             currentTime = savedInstanceState.getInt("currentTime");
             maxTime = savedInstanceState.getInt("maxTime");
-            seekBar.setProgress(currentTime);
-            seekBar.setMax(maxTime);
             stringCurrentTime = savedInstanceState.getString("stringCurrentTime");
             stringMaxTime = savedInstanceState.getString("stringMaxTime");
+
+            if (isPlaying)
+                playButton.setImageResource(android.R.drawable.ic_media_pause);
+            seekBar.setProgress(currentTime);
+            seekBar.setMax(maxTime);
             startTimeView.setText(stringCurrentTime);
             endTimeView.setText(stringMaxTime);
         }
         else if (arguments != null) {
             Log.v(TAG, "Bundle Found");
-            arrayOfTracks = arguments.getParcelableArrayList("trackData");
+            artistId = arguments.getString("artistId");
             position = arguments.getInt("position", 0);
             dialogTablet = true;
             loadTrack(100);
         }
         else if (intent != null) {
             Log.v(TAG, "Intent Found");
-            // Get data from Array
-            arrayOfTracks = intent.getParcelableArrayListExtra("trackData");
+            artistId = intent.getStringExtra("artistId");
             position = intent.getIntExtra("posValue", 0);
             loadTrack(100);
         }
@@ -119,6 +125,9 @@ public class DialogPlayerFragment extends DialogFragment {
         // Display title if tablet
         if (dialogTablet)
             getDialog().setTitle("Now Playing");
+
+        // Load cursor
+        trackCursor = Utility.topTracksCursor(getActivity(), artistId);
 
         // set Ui to current track
         setTrackUi(position);
@@ -177,7 +186,8 @@ public class DialogPlayerFragment extends DialogFragment {
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putParcelableArrayList("tracks", arrayOfTracks);
+//        outState.putParcelableArrayList("tracks", arrayOfTracks);
+        outState.putString("artistId", artistId);
         outState.putInt("position", position);
         outState.putBoolean("isPlaying", isPlaying);
         outState.putBoolean("dialogTablet", dialogTablet);
@@ -190,9 +200,9 @@ public class DialogPlayerFragment extends DialogFragment {
 
     // TRACK UPDATES
     private void loadTrack(int action) {
-        trackUrl = arrayOfTracks.get(position).trackUrl;
         playbackIntent.putExtra("action", action);
-        playbackIntent.putExtra("trackUrl", trackUrl);
+        playbackIntent.putExtra("position", position);
+        playbackIntent.putExtra("artistId", artistId);
         LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(playbackIntent);
     }
 
@@ -200,9 +210,8 @@ public class DialogPlayerFragment extends DialogFragment {
     public void nextSong() {
         // Pick next song, need to send array of tracks not just current
         position++;
-        if (position == arrayOfTracks.size())
+        if (position == trackCursor.getCount())
             position = 0;
-        trackUrl = arrayOfTracks.get(position).trackUrl;
         loadTrack(100);
         seekBar.setProgress(0);
         startTimeView.setText("0:00");
@@ -214,8 +223,7 @@ public class DialogPlayerFragment extends DialogFragment {
         // Pick previous song, need to send top 10 array.
         position--;
         if (position < 0)
-            position = arrayOfTracks.size() - 1;
-        trackUrl = arrayOfTracks.get(position).trackUrl;
+            position = trackCursor.getCount() - 1;
         loadTrack(100);
         seekBar.setProgress(0);
         startTimeView.setText("0:00");
@@ -237,14 +245,16 @@ public class DialogPlayerFragment extends DialogFragment {
 
     // Set UI to current track
     public void setTrackUi(int trackPos) {
-        if (trackPos >= 0 && trackPos <= arrayOfTracks.size()) {
+        if (trackPos >= 0 && trackPos <= trackCursor.getCount()) {
+
+            trackCursor.moveToPosition(trackPos);
 
             // Get Track data from intent
-            trackName = arrayOfTracks.get(trackPos).name;
-            artistName = arrayOfTracks.get(trackPos).artist;
-            albumName = arrayOfTracks.get(trackPos).album;
-            imageName = arrayOfTracks.get(trackPos).bigImage;
-            trackUrl = arrayOfTracks.get(trackPos).trackUrl;
+            trackName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_NAME));
+            artistName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ARTIST_NAME));
+            albumName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_NAME));
+            imageName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_BIGIMAGE));
+            trackUrl = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_PREVIEW));
 
             // Change text in views
             artistNameView.setText(artistName);
@@ -261,12 +271,16 @@ public class DialogPlayerFragment extends DialogFragment {
             // Pre load previous and next images
             int prevPos = trackPos - 1;
             if (prevPos < 0)
-                prevPos = arrayOfTracks.size() - 1;
-            Picasso.with(getActivity()).load(arrayOfTracks.get(prevPos).bigImage).fetch();
+                prevPos = trackCursor.getCount() - 1;
+            trackCursor.moveToPosition(prevPos);
+            String imagePrev = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_BIGIMAGE));;
+            Picasso.with(getActivity()).load(imagePrev).fetch();
             int nextPos = trackPos + 1;
-            if (nextPos >= arrayOfTracks.size())
+            if (nextPos >= trackCursor.getCount())
                 nextPos = 0;
-            Picasso.with(getActivity()).load(arrayOfTracks.get(nextPos).bigImage).fetch();
+            trackCursor.moveToPosition(nextPos);
+            String imageNext = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_BIGIMAGE));;
+            Picasso.with(getActivity()).load(imageNext).fetch();
         }
 
     }
@@ -293,5 +307,11 @@ public class DialogPlayerFragment extends DialogFragment {
 
     private String uiTimeFormat(int timeIn){
         return (int)((timeIn / (1000) / 60)) +  ":" + String.format("%02d", ((int)(timeIn / 1000) % 60));
+    }
+
+    @Override
+    public void onPause(){
+        trackCursor.close();
+        super.onPause();
     }
 }

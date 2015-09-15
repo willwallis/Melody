@@ -70,7 +70,13 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
 
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        }
         // Removed settings but kept method for P2. Will remove if not required.
         return super.onOptionsItemSelected(item);
     }
@@ -105,36 +111,36 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
 
     }
 
-    public void playSelectedSong (ArrayList<TopTrack> arrayOfTracks, int position) {
-        if(mTwoPane){
-            // tablet version, show dialog
-            Bundle args = new Bundle();
-            args.putParcelableArrayList("trackData", arrayOfTracks);
-            args.putInt("position", position);
-
-            DialogFragment dialogPlayerFragment = new DialogPlayerFragment();
-            dialogPlayerFragment.setArguments(args);
-
-            FragmentManager fm = getSupportFragmentManager();
-            FragmentTransaction ft = fm.beginTransaction();
-
-            // Remove any existing instances of the dialog
-            Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERFRAGMENT_TAG);
-            if (prev != null) {
-                ft.remove(prev);
-            }
-            ft.addToBackStack(null);
-
-            dialogPlayerFragment.show(ft, PLAYERFRAGMENT_TAG);
-
-        }
-        else {
-            // phone version, open dialog as fragment  -- note will never be called
-            Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
-            playerIntent.putExtra("posValue", position);
-            playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
-            this.startActivity(playerIntent);
-        }
+    public void playSelectedSong (String artistId, int position) {
+//        if(mTwoPane){
+//            // tablet version, show dialog
+//            Bundle args = new Bundle();
+//            args.putParcelableArrayList("trackData", arrayOfTracks);
+//            args.putInt("position", position);
+//
+//            DialogFragment dialogPlayerFragment = new DialogPlayerFragment();
+//            dialogPlayerFragment.setArguments(args);
+//
+//            FragmentManager fm = getSupportFragmentManager();
+//            FragmentTransaction ft = fm.beginTransaction();
+//
+//            // Remove any existing instances of the dialog
+//            Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERFRAGMENT_TAG);
+//            if (prev != null) {
+//                ft.remove(prev);
+//            }
+//            ft.addToBackStack(null);
+//
+//            dialogPlayerFragment.show(ft, PLAYERFRAGMENT_TAG);
+//
+//        }
+//        else {
+//            // phone version, open dialog as fragment  -- note will never be called
+//            Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
+//            playerIntent.putExtra("posValue", position);
+//            playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
+//            this.startActivity(playerIntent);
+//        }
     }
 
     /**

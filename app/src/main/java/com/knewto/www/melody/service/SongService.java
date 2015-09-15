@@ -4,17 +4,25 @@ package com.knewto.www.melody.service;
  * Created by willwallis on 9/10/15.
  */
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.IBinder;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.os.Handler;
+
+import com.knewto.www.melody.Utility;
+import com.knewto.www.melody.data.TrackContract;
 
 
 public class SongService extends Service implements
@@ -29,6 +37,9 @@ public class SongService extends Service implements
     Intent playPauseIntent = new Intent("play-pause-status");  // Intent to communicate playback status
     Intent trackIntent = new Intent("current-track-position"); // Intent to communicate current track position
     private final Handler handler = new Handler();             // Supports continuous publishing of track position
+    private String artistId = "";                               // artist Id used to refresh cursor when changes
+    private Cursor trackCursor;                                 // Cursor to hold track list
+
 
     public SongService() {
     }
@@ -62,6 +73,7 @@ public class SongService extends Service implements
 
     @Override
     public void onDestroy() {
+        stopForeground(true);
         if (player != null) player.release();
     }
 
@@ -76,8 +88,9 @@ public class SongService extends Service implements
             playbackReq = intent.getIntExtra("action", 0);
             Log.v(TAG, "Case # is: " + playbackReq);
             if (playbackReq == 100) {  // Load and play.
-                songUrl = Uri.parse(intent.getStringExtra("trackUrl"));
-                loadSong(songUrl);
+                String newArtistId = intent.getStringExtra("artistId");
+                int newPosition = intent.getIntExtra("position", 0);
+                loadSong(newArtistId, newPosition);
             } else if (playbackReq == 200) {  // Pause and restart
                 if (player.isPlaying()) {
                     player.pause();
@@ -99,12 +112,16 @@ public class SongService extends Service implements
     };
 
     // Load Song
-    private void loadSong(Uri trackUrl) {
+    private void loadSong(String newArtistId, int position) {
+        if(!artistId.equals(newArtistId))
+            trackCursor = Utility.topTracksCursor(getApplicationContext(), newArtistId);
+        trackCursor.moveToPosition(position);
+        String trackUrl = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_PREVIEW));
         // load the song
         isReady = false;
         player.reset();
         try {
-            player.setDataSource(getApplicationContext(), trackUrl);
+            player.setDataSource(getApplicationContext(), Uri.parse(trackUrl));
         } catch (Exception e) {
             Log.e(TAG, "Error retrieving track", e);
         }
@@ -123,6 +140,35 @@ public class SongService extends Service implements
         broadcastPlayPause(true);
         handler.removeCallbacks(broadcastUpdates);
         handler.post(broadcastUpdates);
+
+        // Start notification
+ //       Intent notIntent = new Intent(this, MainActivity.class);
+ //       notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+ //       PendingIntent pendInt = PendingIntent.getActivity(this, 0,
+//                notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        String songTitle = "Living on a prayer";
+        int NOTIFY_ID=1;
+
+        Intent nextIntent = new Intent(this, SongService.class);
+        nextIntent.setAction("");
+        PendingIntent piNext = PendingIntent.getService(this, 0, nextIntent, 0);
+
+
+        Notification.Builder builder = new Notification.Builder(this);
+
+        builder//.setContentIntent(pendInt)
+                .setSmallIcon(android.R.drawable.ic_media_pause)
+                .setTicker(songTitle)
+                .setOngoing(true)
+                .setContentTitle("Playing")
+                .setContentText(songTitle)
+                .setStyle(new Notification.BigTextStyle().bigText("Big text Message"))
+                .addAction(android.R.drawable.ic_media_previous, "Prev", piNext)
+                .addAction(android.R.drawable.ic_media_next, "Next", piNext);
+        Notification not = builder.build();
+
+        startForeground(NOTIFY_ID, not);
     }
 
     // Method to broadcast play/pause button in UI based on state
@@ -135,8 +181,8 @@ public class SongService extends Service implements
     @Override
     public void onCompletion(MediaPlayer mp) {
         broadcastPlayPause(false);
+        stopForeground(true);
     }
-
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         return false;

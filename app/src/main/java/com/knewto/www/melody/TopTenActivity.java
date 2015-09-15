@@ -52,11 +52,11 @@ public class TopTenActivity extends ActionBarActivity implements TopTenActivityF
         return super.onOptionsItemSelected(item);
     }
 
-    public void playSelectedSong (ArrayList<TopTrack> arrayOfTracks, int position) {
+    public void playSelectedSong (String artistId, int position) {
         // If called from top ten activity we can assume phone version
         Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
+        playerIntent.putExtra("artistId", artistId);
         playerIntent.putExtra("posValue", position);
-        playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
         this.startActivity(playerIntent);
     }
 

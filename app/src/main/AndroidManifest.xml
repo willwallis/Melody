@@ -34,6 +34,14 @@
                 android:value="com.knewto.www.melody.MainActivity" />
         </activity>
         <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.knewto.www.melody.MainActivity" />
+        </activity>
+        <activity
             android:name=".EmbeddedPlayerActivity"
             android:label="@string/title_activity_player"
             android:parentActivityName=".TopTenActivity" >
@@ -42,6 +50,10 @@
                 android:value="com.knewto.www.melody.TopTenActivity" />
         </activity>
         <service android:name=".service.SongService" />
+        <service android:name=".service.TrackService" />
+        <provider
+            android:authorities="com.knewto.www.melody"
+            android:name=".data.TrackProvider" />
     </application>
 
 </manifest>
