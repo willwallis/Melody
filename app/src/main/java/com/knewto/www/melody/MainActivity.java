@@ -1,5 +1,7 @@
 package com.knewto.www.melody;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.app.SearchManager;
 import android.content.Context;
@@ -10,13 +12,11 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.widget.SearchView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.knewto.www.melody.service.SongService;
-
-import java.util.ArrayList;
-
 
 public class MainActivity extends ActionBarActivity implements MainActivityFragment.OnArtistSelected, TopTenActivityFragment.OnSongSelected {
 
@@ -51,6 +51,17 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        boolean nowPlaying = preferences.getBoolean("now_playing", false);
+        Log.v("MainActivity", "Now Playing: " + nowPlaying);
+        if(!nowPlaying)
+            menu.removeItem(R.id.action_now_playing);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
             // Inflate the menu; this adds items to the action bar if it is present.
             getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -72,9 +83,11 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        } else if (id == R.id.action_now_playing){
+            playSelectedSong("", 0);
             return true;
         }
         // Removed settings but kept method for P2. Will remove if not required.
@@ -112,35 +125,34 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
     }
 
     public void playSelectedSong (String artistId, int position) {
-//        if(mTwoPane){
-//            // tablet version, show dialog
-//            Bundle args = new Bundle();
-//            args.putParcelableArrayList("trackData", arrayOfTracks);
-//            args.putInt("position", position);
-//
-//            DialogFragment dialogPlayerFragment = new DialogPlayerFragment();
-//            dialogPlayerFragment.setArguments(args);
-//
-//            FragmentManager fm = getSupportFragmentManager();
-//            FragmentTransaction ft = fm.beginTransaction();
-//
-//            // Remove any existing instances of the dialog
-//            Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERFRAGMENT_TAG);
-//            if (prev != null) {
-//                ft.remove(prev);
-//            }
-//            ft.addToBackStack(null);
-//
-//            dialogPlayerFragment.show(ft, PLAYERFRAGMENT_TAG);
-//
-//        }
-//        else {
-//            // phone version, open dialog as fragment  -- note will never be called
-//            Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
-//            playerIntent.putExtra("posValue", position);
-//            playerIntent.putParcelableArrayListExtra("trackData", arrayOfTracks);
-//            this.startActivity(playerIntent);
-//        }
+        if(mTwoPane){
+            // tablet version, show dialog
+            Bundle args = new Bundle();
+            args.putInt("position", position);
+
+            DialogFragment dialogPlayerFragment = new DialogPlayerFragment();
+            dialogPlayerFragment.setArguments(args);
+
+            FragmentManager fm = getSupportFragmentManager();
+            FragmentTransaction ft = fm.beginTransaction();
+
+            // Remove any existing instances of the dialog
+            Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERFRAGMENT_TAG);
+            if (prev != null) {
+                ft.remove(prev);
+            }
+            ft.addToBackStack(null);
+
+            dialogPlayerFragment.show(ft, PLAYERFRAGMENT_TAG);
+
+        }
+        else {
+            // phone version, open dialog as fragment  -- note will never be called
+            Intent playerIntent = new Intent(this, EmbeddedPlayerActivity.class);
+            playerIntent.putExtra("artistId", artistId);
+            playerIntent.putExtra("posValue", position);
+            this.startActivity(playerIntent);
+        }
     }
 
     /**
@@ -161,6 +173,11 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
     private void showResults(String query) {
         MainActivityFragment fragmentMain = (MainActivityFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         fragmentMain.artistSearch(query);
+    }
+
+    public void onResume(){
+        invalidateOptionsMenu();
+        super.onResume();
     }
 
 }

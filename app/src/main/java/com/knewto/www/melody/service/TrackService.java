@@ -89,7 +89,7 @@ public class TrackService extends IntentService {
             trackValues.put(TrackEntry.COLUMN_TRACK_NAME, tracks.tracks.get(i).name);
             trackValues.put(TrackEntry.COLUMN_TRACK_ID, tracks.tracks.get(i).id);
             trackValues.put(TrackEntry.COLUMN_TRACK_PREVIEW, tracks.tracks.get(i).preview_url);
-            trackValues.put(TrackEntry.COLUMN_TRACK_LINK, tracks.tracks.get(i).href);
+            trackValues.put(TrackEntry.COLUMN_TRACK_LINK, tracks.tracks.get(i).external_urls.get("spotify"));
 
             cVVector.add(trackValues);
         }

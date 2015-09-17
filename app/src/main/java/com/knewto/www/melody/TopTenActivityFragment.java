@@ -154,6 +154,8 @@ public class TopTenActivityFragment extends Fragment implements LoaderManager.Lo
         return fragmentView;
     }
 
+
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         getLoaderManager().initLoader(FORECAST_LOADER, null, this);

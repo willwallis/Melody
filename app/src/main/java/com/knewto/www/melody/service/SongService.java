@@ -11,34 +11,60 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.IBinder;
-import android.support.v4.content.CursorLoader;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.os.Handler;
 
+import com.knewto.www.melody.EmbeddedPlayerActivity;
 import com.knewto.www.melody.Utility;
 import com.knewto.www.melody.data.TrackContract;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 
 public class SongService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener {
 
+    private final int LOADSONG = 100;
+    private final int PAUSEPLAY = 200;
+    private final int SCRUB = 300;
+    private final int PREVSONG = 400;
+    private final int NEXTSONG = 500;
+    private final int REFRESHUI = 600;
+
     private MediaPlayer player;             // media player
-    private Uri songUrl;                    // song url
     private String TAG = "SongService";     // error message tag
     private int playbackReq = 0;            // code used to determine playback request
     private boolean isPaused = false;       // indicates song is paused, so play can restart rather than reload
     private boolean isReady = false;        // indicates song is ready and can be acted on
-    Intent playPauseIntent = new Intent("play-pause-status");  // Intent to communicate playback status
     Intent trackIntent = new Intent("current-track-position"); // Intent to communicate current track position
+    Intent playPauseIntent = new Intent("play-pause-status");
+    Intent maxTimeIntent = new Intent("max-time");
+    Intent uiUpdateIntent = new Intent("player-ui-update");
     private final Handler handler = new Handler();             // Supports continuous publishing of track position
-    private String artistId = "";                               // artist Id used to refresh cursor when changes
+    SharedPreferences preferences;
+
     private Cursor trackCursor;                                 // Cursor to hold track list
+    private String artistId = "";                               // artist Id used to refresh cursor when changes
+    private int position = 0;                                   // position in cursor
+    private String trackName = "track_name";
+    private String artistName = "artist_name";
+    private String albumName = "album_name";
+    private String bigImage = "";
+    private String trackUrl = "";
+    private String spotifyLink = "";
 
 
     public SongService() {
@@ -54,6 +80,11 @@ public class SongService extends Service implements
             player.setOnCompletionListener(this);
             player.setOnErrorListener(this);
         }
+
+        // Get preferences
+        preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        setNowPlaying(false);  // initiate as false
+
         // Create receiver for music playback requests
         LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(musicMessageReceiver,
                 new IntentFilter("playback-request"));
@@ -63,7 +94,19 @@ public class SongService extends Service implements
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.v(TAG, "onStartCommand executed");
-        return Service.START_NOT_STICKY;
+
+        if(intent != null && intent.getAction() != null) {
+            String intentAction = intent.getAction();
+            Log.v(TAG, "IntentAction: " + intentAction);
+            if (intentAction.equals("NEXT_TRACK")) {
+                nextSong();
+            } else if (intentAction.equals("PREV_TRACK")){
+                prevSong();
+            }else if (intentAction.equals("PAUSE_TRACK")) {
+                playPauseSong();
+            }
+        }
+            return Service.START_NOT_STICKY;
     }
 
     @Override
@@ -74,50 +117,71 @@ public class SongService extends Service implements
     @Override
     public void onDestroy() {
         stopForeground(true);
+        setNowPlaying(false);
         if (player != null) player.release();
     }
 
     // PLAYBACK COMMAND HANDLERS
 
-    // Our handler for received Intents. This will be called whenever an Intent
-    // with an action named "current-track-position" is broadcast and update the seekbar
     private BroadcastReceiver musicMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.v(TAG, "Playback command received");
             playbackReq = intent.getIntExtra("action", 0);
-            Log.v(TAG, "Case # is: " + playbackReq);
-            if (playbackReq == 100) {  // Load and play.
-                String newArtistId = intent.getStringExtra("artistId");
-                int newPosition = intent.getIntExtra("position", 0);
-                loadSong(newArtistId, newPosition);
-            } else if (playbackReq == 200) {  // Pause and restart
-                if (player.isPlaying()) {
-                    player.pause();
-                    isPaused = true;
-                    broadcastPlayPause(false);
-                } else if (isReady){
-                    startSong();
+            String newArtistId = intent.getStringExtra("artistId");
+            int newPosition = intent.getIntExtra("position", 0);
+            switch(playbackReq){
+                case LOADSONG:{
+                    Log.v(TAG, "LOADSONG: " + playbackReq);
+                    position = newPosition;
+                    loadSong(newArtistId, position);
+                    break;
                 }
-            } else if (playbackReq == 300) {  // Scrub track
-                Log.v(TAG, "300 case");
-                if (player.isPlaying() || isPaused == true) {
-                    player.seekTo(intent.getIntExtra("progress", player.getCurrentPosition()));
-                    // Update track immediately as handler won't work if paused.
-                    trackIntent.putExtra("currentPosition", player.getCurrentPosition());
-                    LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(trackIntent);
+                case PAUSEPLAY:{
+                    Log.v(TAG, "PAUSEPLAY: " + playbackReq);
+                    playPauseSong();
+                    break;
                 }
+                case SCRUB: {
+                    Log.v(TAG, "SCRUB: " + playbackReq);
+                    if (player.isPlaying() || isPaused == true) {
+                        player.seekTo(intent.getIntExtra("progress", player.getCurrentPosition()));
+                        // Update track immediately as handler won't work if paused.
+                        trackIntent.putExtra("currentPosition", player.getCurrentPosition());
+                        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(trackIntent);
+                    }
+                    break;
+                }
+                case PREVSONG:{
+                    Log.v(TAG, "PREVSONG: " + playbackReq);
+                    prevSong();
+                    break;
+                }
+                case NEXTSONG: {
+                    Log.v(TAG, "NEXTSONG: " + playbackReq);
+                    nextSong();
+                    break;
+                }
+                case REFRESHUI: {
+                    broadcastUiUpdate(position);
+                break;
+                }
+
             }
         }
     };
 
     // Load Song
     private void loadSong(String newArtistId, int position) {
-        if(!artistId.equals(newArtistId))
+        Log.v(TAG, "Position: " + position);
+        // Reload cursor if new artist provided, move to cursor position, and get track url
+        if(!artistId.equals(newArtistId)){
             trackCursor = Utility.topTracksCursor(getApplicationContext(), newArtistId);
-        trackCursor.moveToPosition(position);
-        String trackUrl = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_PREVIEW));
-        // load the song
+            artistId = newArtistId;
+        }
+        // Load data
+        loadTrackData(position);
+
+        // Load the song and prepare player
         isReady = false;
         player.reset();
         try {
@@ -126,55 +190,60 @@ public class SongService extends Service implements
             Log.e(TAG, "Error retrieving track", e);
         }
         player.prepareAsync();
+        // Publish UI Updates
+        broadcastUiUpdate(position);
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mp) {
+        isReady = true;
+        if (!isPaused) {
+            startSong();
+        }
+        setNowPlaying(true);
     }
 
     // Start Song
     private void startSong() {
         player.start();
-        if(!isPaused){
-            trackIntent.removeExtra("currentPosition");
-            trackIntent.putExtra("maxTime", player.getDuration());
-            LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(trackIntent);
-        }
+        broadcastMaxTime(player.getDuration());         // Update max time
         isPaused = false;
-        broadcastPlayPause(true);
+        broadcastPlayPause(true);                       // update pause play button
         handler.removeCallbacks(broadcastUpdates);
-        handler.post(broadcastUpdates);
-
-        // Start notification
- //       Intent notIntent = new Intent(this, MainActivity.class);
- //       notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
- //       PendingIntent pendInt = PendingIntent.getActivity(this, 0,
-//                notIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        String songTitle = "Living on a prayer";
-        int NOTIFY_ID=1;
-
-        Intent nextIntent = new Intent(this, SongService.class);
-        nextIntent.setAction("");
-        PendingIntent piNext = PendingIntent.getService(this, 0, nextIntent, 0);
-
-
-        Notification.Builder builder = new Notification.Builder(this);
-
-        builder//.setContentIntent(pendInt)
-                .setSmallIcon(android.R.drawable.ic_media_pause)
-                .setTicker(songTitle)
-                .setOngoing(true)
-                .setContentTitle("Playing")
-                .setContentText(songTitle)
-                .setStyle(new Notification.BigTextStyle().bigText("Big text Message"))
-                .addAction(android.R.drawable.ic_media_previous, "Prev", piNext)
-                .addAction(android.R.drawable.ic_media_next, "Next", piNext);
-        Notification not = builder.build();
-
-        startForeground(NOTIFY_ID, not);
+        handler.post(broadcastUpdates);                 // start broadcast of current time
+        boolean notifOn = preferences.getBoolean("enable_notifications", false);
+        if (notifOn)
+            new sendNotification().execute();
     }
 
-    // Method to broadcast play/pause button in UI based on state
-    private void broadcastPlayPause(boolean isPlaying) {
-        playPauseIntent.putExtra("isPlaying", isPlaying);
-        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(playPauseIntent);
+    // Previous Song
+    private void prevSong(){
+        position--;
+        if (position < 0)
+            position = trackCursor.getCount() - 1;
+        loadSong(artistId, position);
+    }
+
+
+    // Next Song
+    private void nextSong(){
+        position++;
+        if (position == trackCursor.getCount())
+            position = 0;
+        loadSong(artistId, position);
+    }
+
+    private void playPauseSong() {
+        if (player.isPlaying()) {
+            player.pause();
+            isPaused = true;
+            broadcastPlayPause(false);
+            boolean notifOn = preferences.getBoolean("enable_notifications", false);
+            if (notifOn)
+                new sendNotification().execute();
+        } else if (isReady){
+            startSong();
+        }
     }
 
     // MEDIAPLAYER METHODS
@@ -182,22 +251,16 @@ public class SongService extends Service implements
     public void onCompletion(MediaPlayer mp) {
         broadcastPlayPause(false);
         stopForeground(true);
+        setNowPlaying(false);
     }
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         return false;
     }
 
-    @Override
-    public void onPrepared(MediaPlayer mp) {
-        // need to start in order to get duration
-        if (!isPaused) {
-            startSong();
-        }
-        isReady = true;
-    }
 
-
+    // BROADCASTS
+    // 1. Broadcast Current Position
     public Runnable broadcastUpdates = new Runnable() {
         public void run() {
             if (player.isPlaying()) {
@@ -208,4 +271,155 @@ public class SongService extends Service implements
         }
     };
 
+    // 2. Broadcast play/pause button in UI based on state
+    private void broadcastPlayPause(boolean isPlaying) {
+        playPauseIntent.putExtra("isPlaying", isPlaying);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(playPauseIntent);
+    }
+
+    // 3. Broadcast Max Time
+    private void broadcastMaxTime(int maximumTime) {
+        maxTimeIntent.putExtra("maxTime", maximumTime);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(maxTimeIntent);
+    }
+
+    // 4. Update User Interface in Player
+    private void broadcastUiUpdate (int posValue) {
+        uiUpdateIntent.putExtra("position", position);
+        uiUpdateIntent.putExtra("trackName", trackName);
+        uiUpdateIntent.putExtra("spotifyLink", spotifyLink);
+        uiUpdateIntent.putExtra("artistName", artistName);
+        uiUpdateIntent.putExtra("albumName", albumName);
+        uiUpdateIntent.putExtra("bigImage", bigImage);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(uiUpdateIntent);
+    }
+
+
+    // NOTIFICATION ASYNC TASK
+    private class sendNotification extends AsyncTask<String, String, String>{
+        // Define notification variables
+        String trackName;
+        String artistName;
+        String imageUrl;
+        int prevImage;
+        int playPauseImage;
+        int nextImage;
+        Bitmap albumImage;
+
+        @Override
+        protected void onPreExecute() {
+            // Get all the inputs
+            trackName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_NAME));
+            artistName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ARTIST_NAME));
+            imageUrl = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_BIGIMAGE));
+            prevImage = android.R.drawable.ic_media_previous;
+            nextImage = android.R.drawable.ic_media_next;
+            if(isPaused)
+                playPauseImage = android.R.drawable.ic_media_play;
+            else
+                playPauseImage = android.R.drawable.ic_media_pause;
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            // Post the notification
+            int NOTIFY_ID = 1;
+
+            // Button intents
+            Intent prevIntent = new Intent(getApplicationContext(), SongService.class);
+            prevIntent.setAction("PREV_TRACK");
+            PendingIntent piPrev = PendingIntent.getService(getApplicationContext(), 0, prevIntent, 0);
+
+            Intent pauseIntent = new Intent(getApplicationContext(), SongService.class);
+            pauseIntent.setAction("PAUSE_TRACK");
+            PendingIntent piPause = PendingIntent.getService(getApplicationContext(), 0, pauseIntent, 0);
+
+            Intent nextIntent = new Intent(getApplicationContext(), SongService.class);
+            nextIntent.setAction("NEXT_TRACK");
+            PendingIntent piNext = PendingIntent.getService(getApplicationContext(), 0, nextIntent, 0);
+
+            // Open player intent
+            Intent resultIntent = new Intent(getApplicationContext(), EmbeddedPlayerActivity.class);
+            resultIntent.putExtra("artistId", "");
+            resultIntent.putExtra("posValue", 0);
+            resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+            PendingIntent resultPendingIntent =
+                    PendingIntent.getActivity(getApplicationContext(), 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            // Create Notification
+            Notification.Builder builder = new Notification.Builder(getApplicationContext());
+
+            builder//.setContentIntent(pendInt)
+                    .setSmallIcon(android.R.drawable.ic_media_play)
+                    .setLargeIcon(albumImage)
+                    .setTicker(trackName)
+                    .setOngoing(true)
+                    .setContentTitle(trackName)
+                    .setContentText(artistName)
+                    .setContentIntent(resultPendingIntent)
+                    .setStyle(new Notification.BigTextStyle().bigText(artistName))
+                    .addAction(prevImage, "Previous", piPrev)
+                    .addAction(playPauseImage, "Pause", piPause)
+                    .addAction(nextImage, "Next", piNext)
+                    .setStyle(new Notification.MediaStyle())
+                    .setVisibility(Notification.VISIBILITY_PUBLIC);
+            Notification not = builder.build();
+
+            startForeground(NOTIFY_ID, not);
+
+            super.onPostExecute(s);
+        }
+
+        @Override
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            // Load the image
+            try {
+                URL url = new URL(imageUrl);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.connect();
+                InputStream input = connection.getInputStream();
+                albumImage = BitmapFactory.decodeStream(input);
+                return null;
+            } catch (IOException e) {
+                // Log exception
+                return null;
+            }
+        }
+    }
+
+private void setNowPlaying(boolean nowPlaying) {
+    SharedPreferences.Editor editor = preferences.edit();
+    editor.putBoolean("now_playing", nowPlaying);
+    editor.commit();
+    Log.v(TAG, "TopTenMenu: " + nowPlaying);
 }
+
+    private void loadTrackData(int position){
+        // check position not bigger than count
+        if (position == trackCursor.getCount())
+            position = 0;
+        // check position not les than zero
+        if (position < 0)
+            position = trackCursor.getCount() - 1;
+        // Load new data
+        trackCursor.moveToPosition(position);
+
+        trackName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_NAME));
+        artistName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ARTIST_NAME));
+        albumName = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_NAME));
+        bigImage = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_ALBUM_BIGIMAGE));
+        trackUrl = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_PREVIEW));
+        spotifyLink = trackCursor.getString(trackCursor.getColumnIndexOrThrow(TrackContract.TrackEntry.COLUMN_TRACK_LINK));
+
+    }
+}
+
+

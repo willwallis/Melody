@@ -68,19 +68,11 @@ public class MainActivityFragment extends Fragment {
         arrayOfArtists = new ArrayList<ArtistProfile>();
         // Looked for saved instance and if found retrieve artist info, otherwise do open search
         if(savedInstanceState == null || !savedInstanceState.containsKey("artists")) {
-            // Used for testing. Will remove on the completion of P2.
-//                ArtistProfile tempProfile = new ArtistProfile("Tiny Tim", "https://i.scdn.co/image/18141db33353a7b84c311b7068e29ea53fad2326", "6vWDO969PvNqNYHIOW5v0m");
-//                arrayOfArtists.add(tempProfile);
-        }
+         }
         else {
             arrayOfArtists = savedInstanceState.getParcelableArrayList("artists");
             mPosition = savedInstanceState.getInt("currentPosition");
         }
-//        if (arrayOfArtists.size() == 0) {
-//            String toastText = "Redo Query"; // what the toast should display
-//            Toast toast = Toast.makeText(getActivity(), toastText, Toast.LENGTH_SHORT);  // create the toast
-//            toast.show(); // display the toast
-//        }
     }
 
     @Override

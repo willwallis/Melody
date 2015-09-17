@@ -45,7 +45,8 @@ public class SettingsActivity extends PreferenceActivity
 
             listPreferenceCategory.setEntries(countryEntries);
             listPreferenceCategory.setEntryValues(countryValues);
-            listPreferenceCategory.setValueIndex(defaultValue);
+            if (listPreferenceCategory.getValue().length() > 2) // Value returns default if not set.
+                listPreferenceCategory.setValueIndex(defaultValue);
         }
 
 
