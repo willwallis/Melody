@@ -23,8 +23,10 @@ import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.os.Handler;
+import android.support.v7.app.NotificationCompat;
 
 import com.knewto.www.melody.EmbeddedPlayerActivity;
+import com.knewto.www.melody.MainActivity;
 import com.knewto.www.melody.Utility;
 import com.knewto.www.melody.data.TrackContract;
 
@@ -55,6 +57,7 @@ public class SongService extends Service implements
     Intent uiUpdateIntent = new Intent("player-ui-update");
     private final Handler handler = new Handler();             // Supports continuous publishing of track position
     SharedPreferences preferences;
+    boolean mTwoPane = false;                                           // determines if in tablet mode
 
     private Cursor trackCursor;                                 // Cursor to hold track list
     private String artistId = "";                               // artist Id used to refresh cursor when changes
@@ -80,7 +83,6 @@ public class SongService extends Service implements
             player.setOnCompletionListener(this);
             player.setOnErrorListener(this);
         }
-
         // Get preferences
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         setNowPlaying(false);  // initiate as false
@@ -106,7 +108,10 @@ public class SongService extends Service implements
                 playPauseSong();
             }
         }
-            return Service.START_NOT_STICKY;
+        if(intent != null && intent.hasExtra("twoPane")) {
+            mTwoPane = intent.getBooleanExtra("twoPane", false);
+        }
+        return Service.START_NOT_STICKY;
     }
 
     @Override
@@ -292,6 +297,10 @@ public class SongService extends Service implements
         uiUpdateIntent.putExtra("albumName", albumName);
         uiUpdateIntent.putExtra("bigImage", bigImage);
         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(uiUpdateIntent);
+        // Required when player is reopened from Now Playing
+        broadcastPlayPause(!isPaused);
+        if(player.isPlaying())
+            broadcastMaxTime(player.getDuration());
     }
 
 
@@ -340,16 +349,22 @@ public class SongService extends Service implements
             PendingIntent piNext = PendingIntent.getService(getApplicationContext(), 0, nextIntent, 0);
 
             // Open player intent
-            Intent resultIntent = new Intent(getApplicationContext(), EmbeddedPlayerActivity.class);
+            Intent resultIntent;
+            if (mTwoPane)
+                resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+            else
+                //resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+                resultIntent = new Intent(getApplicationContext(), EmbeddedPlayerActivity.class);
             resultIntent.putExtra("artistId", "");
             resultIntent.putExtra("posValue", 0);
+            resultIntent.putExtra("openPlayer", true);
             resultIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
             PendingIntent resultPendingIntent =
                     PendingIntent.getActivity(getApplicationContext(), 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             // Create Notification
-            Notification.Builder builder = new Notification.Builder(getApplicationContext());
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext());
 
             builder//.setContentIntent(pendInt)
                     .setSmallIcon(android.R.drawable.ic_media_play)
@@ -359,11 +374,11 @@ public class SongService extends Service implements
                     .setContentTitle(trackName)
                     .setContentText(artistName)
                     .setContentIntent(resultPendingIntent)
-                    .setStyle(new Notification.BigTextStyle().bigText(artistName))
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(artistName))
                     .addAction(prevImage, "Previous", piPrev)
                     .addAction(playPauseImage, "Pause", piPause)
                     .addAction(nextImage, "Next", piNext)
-                    .setStyle(new Notification.MediaStyle())
+                    .setStyle(new NotificationCompat.MediaStyle())
                     .setVisibility(Notification.VISIBILITY_PUBLIC);
             Notification not = builder.build();
 

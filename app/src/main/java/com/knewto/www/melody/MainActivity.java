@@ -1,6 +1,8 @@
 package com.knewto.www.melody;
 
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.app.SearchManager;
@@ -15,6 +17,7 @@ import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.knewto.www.melody.service.SongService;
 
@@ -47,7 +50,15 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
         handleIntent(getIntent());
         // Start Music Service
         Intent songIntent = new Intent(this, SongService.class);
+        songIntent.putExtra("twoPane", mTwoPane);
         startService(songIntent);
+        // If called from now playing, open player
+        Intent intent = this.getIntent();
+        if(intent != null && intent.hasExtra("openPlayer")) {
+            if(intent.getBooleanExtra("openPlayer", false))
+                playSelectedSong("", 0);
+        }
+
     }
 
     @Override
@@ -129,6 +140,7 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
             // tablet version, show dialog
             Bundle args = new Bundle();
             args.putInt("position", position);
+            args.putString("artistId", artistId);
 
             DialogFragment dialogPlayerFragment = new DialogPlayerFragment();
             dialogPlayerFragment.setArguments(args);
@@ -171,8 +183,24 @@ public class MainActivity extends ActionBarActivity implements MainActivityFragm
      * @param query
      */
     private void showResults(String query) {
-        MainActivityFragment fragmentMain = (MainActivityFragment)getSupportFragmentManager().findFragmentById(R.id.fragment_main);
-        fragmentMain.artistSearch(query);
+        if(isNetworkAvailable()) {
+            MainActivityFragment fragmentMain = (MainActivityFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+            fragmentMain.artistSearch(query);
+        }
+        else {
+            // Error message for network failure
+            String toastText = "Network Unavailable"; // what the toast should display
+            Toast toast = Toast.makeText(this, toastText, Toast.LENGTH_SHORT);  // create the toast
+            toast.show(); // display the toast
+        }
+
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     public void onResume(){
